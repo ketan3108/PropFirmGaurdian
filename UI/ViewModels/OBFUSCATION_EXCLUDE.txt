@@ -1,0 +1,2 @@
+Exclude this folder from identifier renaming in the release obfuscation profile.
+WPF bindings depend on public ViewModel property names remaining stable.

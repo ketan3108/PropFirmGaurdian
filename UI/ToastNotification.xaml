@@ -1,0 +1,15 @@
+<UserControl x:Class="PropFirmGuardian.UI.ToastNotification"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Width="320"
+             Background="Transparent">
+    <Border x:Name="ToastBorder" Background="#FF1A1A24" BorderBrush="#FF3B82F6" BorderThickness="4,1,1,1" CornerRadius="6" Padding="12">
+        <DockPanel>
+            <Button Content="x" DockPanel.Dock="Right" Width="24" Height="24" />
+            <StackPanel>
+                <TextBlock x:Name="TitleText" Text="Guardian" Foreground="White" FontWeight="SemiBold" />
+                <TextBlock x:Name="MessageText" Text="Notification" Foreground="#FF8A8A9A" TextWrapping="Wrap" />
+            </StackPanel>
+        </DockPanel>
+    </Border>
+</UserControl>

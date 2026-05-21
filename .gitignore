@@ -1,0 +1,25 @@
+# Build outputs
+bin/
+obj/
+*.dll
+*.pdb
+*.exe
+*.cache
+
+# Visual Studio / VS Code
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# NinjaTrader local runtime/state files
+State.enc
+Config.enc
+*.enc
+*.tmp
+
+# OS files
+Thumbs.db
+Desktop.ini

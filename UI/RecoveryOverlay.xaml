@@ -1,0 +1,16 @@
+<UserControl x:Class="PropFirmGuardian.UI.RecoveryOverlay"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="#DD0A0A0F">
+    <Grid>
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Width="260">
+            <Ellipse Width="90" Height="90" Stroke="#6600D4AA" StrokeThickness="3" HorizontalAlignment="Center" />
+            <TextBlock Text="Take 15. Reset. Return stronger." Foreground="White" FontSize="18" FontWeight="Bold" TextAlignment="Center" Margin="0,18,0,10" />
+            <TextBox x:Name="JournalTextBox" Text="" ToolTip="What shifted? Optional." Background="#FF1A1A24" Foreground="White" BorderBrush="#FF2A2A3A" />
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,14,0,0">
+                <Button Content="Resume with 50% size" Margin="0,0,8,0" />
+                <Button Content="End Session" />
+            </StackPanel>
+        </StackPanel>
+    </Grid>
+</UserControl>

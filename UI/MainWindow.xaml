@@ -1,0 +1,24 @@
+<UserControl x:Class="PropFirmGuardian.UI.MainWindow"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="#FF0A0A0F">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="220" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Border Background="#FF1A1A24" BorderBrush="#FF2A2A3A" BorderThickness="0,0,1,0">
+            <StackPanel Margin="16">
+                <TextBlock Text="ACCOUNTS" Foreground="#FF8A8A9A" FontWeight="SemiBold" />
+                <ListBox x:Name="AccountsList" Background="Transparent" BorderThickness="0" Foreground="White" />
+            </StackPanel>
+        </Border>
+        <Grid Grid.Column="1" Margin="20">
+            <StackPanel>
+                <TextBlock Text="Pass Probability" Foreground="White" FontSize="18" FontWeight="Bold" />
+                <TextBlock x:Name="PassProbabilityText" Text="50%" Foreground="#FF00D4AA" FontSize="54" FontWeight="Bold" />
+                <TextBlock x:Name="TrajectoryText" Text="Trajectory unavailable until trades are recorded." Foreground="#FF8A8A9A" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</UserControl>

@@ -1,0 +1,171 @@
+<UserControl x:Class="PropFirmGuardian.UI.SettingsFlyout"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="#FF1B1B1B"
+             Foreground="White">
+    <UserControl.Resources>
+        <Style TargetType="{x:Type TextBlock}">
+            <Setter Property="Foreground" Value="#FFDADADA" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,0,0,6" />
+        </Style>
+        <Style TargetType="{x:Type TextBox}">
+            <Setter Property="Background" Value="#FF101010" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="BorderBrush" Value="#FF3D3D3D" />
+            <Setter Property="CaretBrush" Value="White" />
+            <Setter Property="Padding" Value="8,5" />
+            <Setter Property="Margin" Value="0,0,0,10" />
+        </Style>
+        <Style TargetType="{x:Type ComboBox}">
+            <Setter Property="Background" Value="#FF101010" />
+            <Setter Property="Foreground" Value="Black" />
+            <Setter Property="BorderBrush" Value="#FF3D3D3D" />
+            <Setter Property="Padding" Value="6,4" />
+            <Setter Property="Margin" Value="0,0,0,10" />
+        </Style>
+        <Style TargetType="{x:Type CheckBox}">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Margin" Value="0,0,0,10" />
+        </Style>
+        <Style x:Key="ActionButtonStyle" TargetType="{x:Type Button}">
+            <Setter Property="Background" Value="#FF252525" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="BorderBrush" Value="#FF3D3D3D" />
+            <Setter Property="Padding" Value="14,7" />
+            <Setter Property="MinWidth" Value="78" />
+        </Style>
+    </UserControl.Resources>
+
+    <Border Background="#FF1B1B1B"
+            BorderBrush="#FF3D3D3D"
+            BorderThickness="1,0,0,0">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <DockPanel Grid.Row="0" Margin="18,18,18,10">
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <Button Content="Apply"
+                            Background="#FF252525"
+                            Foreground="White"
+                            BorderBrush="#FF00D4AA"
+                            Padding="12,6"
+                            MinWidth="72"
+                            Margin="0,0,8,0"
+                            ToolTip="Apply settings without closing this panel."
+                            Click="Apply_Click" />
+                    <Button Content="Save &amp; Close"
+                            Background="#FF00A65A"
+                            Foreground="White"
+                            BorderBrush="#FF00FF88"
+                            Padding="12,6"
+                            MinWidth="104"
+                            ToolTip="Save account settings and close this panel."
+                            Click="Save_Click" />
+                </StackPanel>
+                <TextBlock Text="Account Settings"
+                           Foreground="White"
+                           FontSize="18"
+                           FontWeight="SemiBold"
+                           Margin="0" />
+            </DockPanel>
+
+            <ScrollViewer Grid.Row="1"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          Padding="18,0,18,0">
+                <StackPanel>
+
+                <TextBlock Text="Account Name" />
+                <TextBox x:Name="AccountNameTextBox" IsReadOnly="True" Background="#FF242424" />
+
+                <TextBlock Text="Prop Firm Preset" />
+                <ComboBox x:Name="PresetComboBox" SelectionChanged="PresetComboBox_SelectionChanged" />
+
+                <TextBlock Text="Daily Loss Limit" />
+                <TextBox x:Name="DailyLossLimitTextBox" />
+
+                <TextBlock Text="Trailing Drawdown" />
+                <TextBox x:Name="TrailingDrawdownTextBox" />
+
+                <TextBlock Text="Max Position Size" />
+                <TextBox x:Name="MaxPositionSizeTextBox" />
+
+                <CheckBox x:Name="EnableDailyLimitCheckBox" Content="Enable Daily Trade Limit" />
+
+                <TextBlock Text="Daily Trade Limit" />
+                <TextBox x:Name="DailyTradeLimitTextBox" />
+
+                <CheckBox x:Name="AllowEmergencyOverrideCheckBox" Content="Allow Emergency Override" />
+
+                <TextBlock Text="Emergency Override Trades" />
+                <TextBox x:Name="EmergencyOverrideTradesTextBox" />
+
+                <TextBlock Text="Safety Buffer" />
+                <TextBox x:Name="SafetyBufferTextBox" />
+
+                <CheckBox x:Name="IsLivePaCheckBox" Content="Is Live PA" />
+                <CheckBox x:Name="IsEvalCheckBox" Content="Is Eval" />
+
+                <TextBlock Text="Session Reset Time" />
+                <ComboBox x:Name="SessionResetComboBox">
+                    <ComboBoxItem Content="00:00" />
+                    <ComboBoxItem Content="16:00" />
+                    <ComboBoxItem Content="17:00" />
+                    <ComboBoxItem Content="18:00" />
+                </ComboBox>
+
+                <CheckBox x:Name="IsExcludedCheckBox" Content="Exclude from Monitoring" />
+                <CheckBox x:Name="ShadowModeCheckBox" Content="Shadow Mode" />
+                <CheckBox x:Name="HardEnforcementCheckBox" Content="Hard Enforcement" />
+
+                <TextBlock Text="Time-Based Guards" Foreground="White" FontWeight="SemiBold" Margin="0,8,0,8" />
+                <CheckBox x:Name="EndOfSessionGuardCheckBox" Content="End of Session Guard" />
+                <CheckBox x:Name="WeekendGuardCheckBox" Content="Weekend Guard" />
+                <CheckBox x:Name="OvernightGuardCheckBox" Content="Overnight Guard" />
+                <CheckBox x:Name="PreMarketGuardCheckBox" Content="Pre-Market Guard" />
+
+                <TextBlock x:Name="ValidationTextBlock"
+                           Foreground="#FFFF5252"
+                           TextWrapping="Wrap"
+                           Margin="0,2,0,12" />
+                </StackPanel>
+            </ScrollViewer>
+
+            <Border Grid.Row="2"
+                    Background="#FF181818"
+                    BorderBrush="#FF303030"
+                    BorderThickness="0,1,0,0"
+                    Padding="18,12">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Content="Cancel"
+                            Style="{StaticResource ActionButtonStyle}"
+                            Margin="0,0,8,0"
+                            ToolTip="Discard changes and close settings."
+                            Click="Cancel_Click" />
+                    <Button Content="Apply"
+                            Background="#FF252525"
+                            Foreground="White"
+                            BorderBrush="#FF00D4AA"
+                            Padding="14,7"
+                            MinWidth="78"
+                            Margin="0,0,8,0"
+                            ToolTip="Apply settings without closing this panel."
+                            Click="Apply_Click" />
+                    <Button Content="Save &amp; Close"
+                            Background="#FF00A65A"
+                            Foreground="White"
+                            BorderBrush="#FF00FF88"
+                            Padding="14,7"
+                            MinWidth="112"
+                            ToolTip="Save account settings."
+                            Click="Save_Click" />
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
+</UserControl>
