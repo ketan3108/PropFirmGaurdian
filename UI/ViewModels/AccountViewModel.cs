@@ -108,7 +108,23 @@ namespace PropFirmGuardian.UI.ViewModels
 
         public string StatusDisplay
         {
-            get { return IsHardLock ? "HARD LOCK" : Status.ToString(); }
+            get
+            {
+                if (IsHardLock)
+                    return "HARD LOCK";
+
+                if (Status == AccountState.Active || Status == AccountState.Warning)
+                {
+                    if (TradeCapSeverity >= 3)
+                        return "Locked";
+                    if (TradeCapSeverity >= 2)
+                        return "Limit";
+                    if (TradeCapSeverity >= 1)
+                        return "Warning";
+                }
+
+                return Status.ToString();
+            }
         }
 
         public int TradesToday
@@ -120,6 +136,9 @@ namespace PropFirmGuardian.UI.ViewModels
                 {
                     OnPropertyChanged("TradesTodayDisplay");
                     OnPropertyChanged("TradesTodayPercent");
+                    OnPropertyChanged("TradeCapSeverity");
+                    OnPropertyChanged("StatusColor");
+                    OnPropertyChanged("StatusDisplay");
                 }
             }
         }
@@ -133,6 +152,9 @@ namespace PropFirmGuardian.UI.ViewModels
                 {
                     OnPropertyChanged("TradesTodayDisplay");
                     OnPropertyChanged("TradesTodayPercent");
+                    OnPropertyChanged("TradeCapSeverity");
+                    OnPropertyChanged("StatusColor");
+                    OnPropertyChanged("StatusDisplay");
                 }
             }
         }
@@ -145,6 +167,27 @@ namespace PropFirmGuardian.UI.ViewModels
         public double TradesTodayPercent
         {
             get { return DailyTradeLimit > 0 ? Math.Min(100.0, Math.Max(0.0, TradesToday * 100.0 / DailyTradeLimit)) : 0.0; }
+        }
+
+        public int TradeCapSeverity
+        {
+            get
+            {
+                if (DailyTradeLimit <= 0)
+                    return 0;
+
+                if (TradesToday >= DailyTradeLimit)
+                    return 3;
+
+                double percent = TradesTodayPercent;
+                if (percent >= 80.0)
+                    return 2;
+
+                if (percent >= 60.0)
+                    return 1;
+
+                return 0;
+            }
         }
 
         public double SessionQualityScore
@@ -190,9 +233,15 @@ namespace PropFirmGuardian.UI.ViewModels
                 switch (Status)
                 {
                     case AccountState.Active:
+                        if (TradeCapSeverity >= 3)
+                            return new SolidColorBrush(Color.FromRgb(153, 27, 27));
+                        if (TradeCapSeverity >= 2)
+                            return Brushes.Red;
+                        if (TradeCapSeverity >= 1)
+                            return Brushes.Gold;
                         return Brushes.LimeGreen;
                     case AccountState.Warning:
-                        return Brushes.Gold;
+                        return TradeCapSeverity >= 2 ? Brushes.Red : Brushes.Gold;
                     case AccountState.Flattening:
                         return Brushes.Red;
                     case AccountState.Locked:

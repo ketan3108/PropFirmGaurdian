@@ -5,6 +5,14 @@
              Height="140"
              Background="Transparent">
     <Border Background="#E60A0A0F" BorderBrush="#FF2A2A3A" BorderThickness="1" CornerRadius="12" Padding="14">
+        <Border.ContextMenu>
+            <ContextMenu>
+                <MenuItem Header="Open Guardian" Click="OpenGuardian_Click" />
+                <MenuItem Header="Settings" Click="OpenGuardian_Click" />
+                <Separator />
+                <MenuItem Header="Emergency Flatten" Click="EmergencyFlatten_Click" />
+            </ContextMenu>
+        </Border.ContextMenu>
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
@@ -12,7 +20,7 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
             <DockPanel>
-                <Ellipse Width="8" Height="8" Fill="#FF00D4AA" Margin="0,0,8,0" />
+                <Ellipse x:Name="StatusDot" Width="8" Height="8" Fill="#FF00D4AA" Margin="0,0,8,0" />
                 <TextBlock x:Name="AccountText" Text="Guardian" Foreground="White" FontWeight="SemiBold" />
                 <TextBlock x:Name="PassText" Text="Pass: 50%" Foreground="#FF00D4AA" HorizontalAlignment="Right" />
             </DockPanel>
@@ -23,10 +31,11 @@
                 </Grid.ColumnDefinitions>
                 <StackPanel>
                     <TextBlock x:Name="PnlText" Text="$0" Foreground="White" FontSize="20" FontWeight="Bold" />
-                    <TextBlock Text="P&amp;L" Foreground="#FF8A8A9A" FontSize="10" />
+                    <TextBlock x:Name="TradesText" Text="Trades 0/12" Foreground="#FF8A8A9A" FontSize="10" />
                 </StackPanel>
                 <Grid Grid.Column="1">
                     <Ellipse Stroke="#FF2A2A3A" StrokeThickness="4" />
+                    <Path x:Name="PassRing" Stroke="#FF00D4AA" StrokeThickness="4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
                     <TextBlock x:Name="RingText" Text="50%" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
                 </Grid>
             </Grid>
@@ -35,7 +44,7 @@
                     <TextBlock x:Name="SizeText" Text="Size: 100%" Foreground="#FF00D4AA" FontSize="10" />
                 </Border>
                 <Border Background="#26F59E0B" CornerRadius="10" Padding="8,3">
-                    <TextBlock x:Name="GuardText" Text="Clear" Foreground="#FFF59E0B" FontSize="10" />
+                    <TextBlock x:Name="GuardText" Text="All clear" Foreground="#FFF59E0B" FontSize="10" />
                 </Border>
             </StackPanel>
         </Grid>

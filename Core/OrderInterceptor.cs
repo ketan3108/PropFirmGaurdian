@@ -34,7 +34,12 @@ namespace PropFirmGuardian.Core
             lock (state.LockObject)
             {
                 AccountState currentState = state.Snapshot.LastKnownStatus;
-                shouldBlock = currentState == AccountState.Locked || currentState == AccountState.Flattening;
+                shouldBlock = currentState == AccountState.Locked
+                    || currentState == AccountState.HardLocked
+                    || currentState == AccountState.Flattening
+                    || currentState == AccountState.GraceWindow
+                    || currentState == AccountState.RecoveryMode
+                    || currentState == AccountState.NewsLocked;
                 remainingLockout = state.Snapshot.LockedUntil.HasValue
                     ? state.Snapshot.LockedUntil.Value - DateTime.Now
                     : TimeSpan.Zero;
@@ -43,7 +48,7 @@ namespace PropFirmGuardian.Core
             if (!shouldBlock)
                 return;
 
-            if (IsPendingOrWorking(order.OrderState))
+            if (IsPendingOrWorking(order.OrderState) && IsEntryOrder(order))
             {
                 // NT8 exposes cancellation through the owning Account. This blocks fresh
                 // orders during lockout without starting another flatten cycle, avoiding
@@ -76,6 +81,14 @@ namespace PropFirmGuardian.Core
                 || orderState == OrderState.AcceptedByRisk
                 || orderState == OrderState.TriggerPending
                 || orderState == OrderState.Working;
+        }
+
+        private static bool IsEntryOrder(Order order)
+        {
+            string action = order.OrderAction.ToString();
+            return action.IndexOf("SellShort", StringComparison.OrdinalIgnoreCase) >= 0
+                || (action.IndexOf("Buy", StringComparison.OrdinalIgnoreCase) >= 0
+                    && action.IndexOf("Cover", StringComparison.OrdinalIgnoreCase) < 0);
         }
     }
 }

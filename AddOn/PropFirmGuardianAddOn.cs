@@ -25,6 +25,8 @@ namespace NinjaTrader.NinjaScript.AddOns
     {
         private NTWindow _dashboardWindow;
         private GuardianDashboard _dashboardControl;
+        private NTWindow _widgetWindow;
+        private FloatingWidget _floatingWidget;
         private NTMenuItem _menuItem;
         private NinjaTrader.Gui.ControlCenter _controlCenter;
 
@@ -48,6 +50,7 @@ namespace NinjaTrader.NinjaScript.AddOns
         private ConsistencyTracker _consistencyTracker;
         private TimeBasedGuard _timeBasedGuard;
         private PassProbabilityEngine _passProbabilityEngine;
+        private SmartCircuitBreaker _smartCircuitBreaker;
 
         private bool _isConnectionStatusSubscribed;
         private bool _isShuttingDown;
@@ -150,6 +153,7 @@ namespace NinjaTrader.NinjaScript.AddOns
                 _consistencyTracker = new ConsistencyTracker();
                 _timeBasedGuard = new TimeBasedGuard(_accountMonitor);
                 _passProbabilityEngine = new PassProbabilityEngine(_accountMonitor);
+                _smartCircuitBreaker = new SmartCircuitBreaker(_accountMonitor);
                 _audio = new AudioAlertService();
                 _crashRecovery = new CrashRecovery(_accountMonitor, _persistence);
                 _crashRecovery.OnRecoveryAlert += OnRecoveryAlert;
@@ -174,6 +178,7 @@ namespace NinjaTrader.NinjaScript.AddOns
                 _persistence.SaveConfig(_accountConfigs);
                 _discoveryTimer = new Timer(OnDiscoveryTimerTick, null, 500, 2000);
                 _enforcementTimer = new System.Threading.Timer(EnforceLockdowns, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(50));
+                ShowFloatingWidget();
             }
             catch (Exception exception)
             {
@@ -198,6 +203,10 @@ namespace NinjaTrader.NinjaScript.AddOns
             _dailyTradeLimiter.OnDailyLimitWarning += OnDailyLimitWarning;
             _dailyTradeLimiter.OnDailyLimitReached += OnDailyLimitReached;
             _timeBasedGuard.OnGuardActivated += OnGuardActivated;
+            _smartCircuitBreaker.OnWarning += OnCircuitBreakerWarning;
+            _smartCircuitBreaker.OnGraceWindowStarted += OnCircuitBreakerGraceWindowStarted;
+            _smartCircuitBreaker.OnHardLockRequired += OnCircuitBreakerHardLockRequired;
+            _smartCircuitBreaker.OnRecoveryAvailable += OnCircuitBreakerRecoveryAvailable;
         }
 
         private void WireNewsEvents()
@@ -256,6 +265,67 @@ namespace NinjaTrader.NinjaScript.AddOns
             _dashboardControl = null;
         }
 
+        private void ShowFloatingWidget()
+        {
+            ThreadSafeDispatcher.SafeInvoke(() =>
+            {
+                if (_isShuttingDown || _widgetWindow != null)
+                    return;
+
+                _floatingWidget = new FloatingWidget();
+                _floatingWidget.OpenRequested += OpenDashboardFromWidget;
+                _floatingWidget.EmergencyFlattenRequested += EmergencyFlattenAllFromWidget;
+
+                _widgetWindow = new NTWindow
+                {
+                    Caption = "Guardian",
+                    Content = _floatingWidget,
+                    Width = 300,
+                    Height = 140,
+                    Topmost = true,
+                    ShowInTaskbar = false,
+                    ResizeMode = ResizeMode.NoResize,
+                    WindowStyle = WindowStyle.None
+                };
+
+                _widgetWindow.Closed += OnWidgetWindowClosed;
+                _widgetWindow.Show();
+                UpdateFloatingWidgetFromFirstAccount();
+            }, DispatcherPriority.Background);
+        }
+
+        private void OnWidgetWindowClosed(object sender, EventArgs eventArgs)
+        {
+            if (_floatingWidget != null)
+            {
+                _floatingWidget.OpenRequested -= OpenDashboardFromWidget;
+                _floatingWidget.EmergencyFlattenRequested -= EmergencyFlattenAllFromWidget;
+            }
+
+            if (_widgetWindow != null)
+                _widgetWindow.Closed -= OnWidgetWindowClosed;
+
+            _widgetWindow = null;
+            _floatingWidget = null;
+        }
+
+        private void OpenDashboardFromWidget()
+        {
+            OnMenuItemClick(this, null);
+        }
+
+        private void EmergencyFlattenAllFromWidget()
+        {
+            if (_accountMonitor == null || _flattenProtocol == null)
+                return;
+
+            foreach (AccountMonitor.AccountMonitorState state in _accountMonitor.GetAccountStates())
+            {
+                if (state != null && state.Snapshot != null && state.Config != null && !state.Config.IsExcluded)
+                    _flattenProtocol.ExecuteFlatten(state.Snapshot.AccountName, "Widget emergency flatten");
+            }
+        }
+
         private void Cleanup()
         {
             _isShuttingDown = true;
@@ -295,6 +365,9 @@ namespace NinjaTrader.NinjaScript.AddOns
             if (_timeBasedGuard != null)
                 _timeBasedGuard.Dispose();
 
+            if (_smartCircuitBreaker != null)
+                _smartCircuitBreaker.Dispose();
+
             if (_audio != null)
                 _audio.Dispose();
 
@@ -313,6 +386,7 @@ namespace NinjaTrader.NinjaScript.AddOns
             _consistencyTracker = null;
             _timeBasedGuard = null;
             _passProbabilityEngine = null;
+            _smartCircuitBreaker = null;
             _discoveryTimer = null;
             _enforcementTimer = null;
             _accountConfigs.Clear();
@@ -345,6 +419,14 @@ namespace NinjaTrader.NinjaScript.AddOns
 
             if (_timeBasedGuard != null)
                 _timeBasedGuard.OnGuardActivated -= OnGuardActivated;
+
+            if (_smartCircuitBreaker != null)
+            {
+                _smartCircuitBreaker.OnWarning -= OnCircuitBreakerWarning;
+                _smartCircuitBreaker.OnGraceWindowStarted -= OnCircuitBreakerGraceWindowStarted;
+                _smartCircuitBreaker.OnHardLockRequired -= OnCircuitBreakerHardLockRequired;
+                _smartCircuitBreaker.OnRecoveryAvailable -= OnCircuitBreakerRecoveryAvailable;
+            }
 
             if (_newsEngine != null)
                 _newsEngine.OnNewsProtectionTriggered -= OnNewsProtectionTriggered;
@@ -1250,6 +1332,41 @@ namespace NinjaTrader.NinjaScript.AddOns
                 _persistence.SaveStateImmediately(_accountMonitor.ExportSnapshots());
         }
 
+        private void OnCircuitBreakerWarning(string accountName, string message)
+        {
+            if (_audio != null)
+                _audio.Speak(message, AlertPriority.Warning);
+
+            QueueDashboardUpdate(accountName);
+        }
+
+        private void OnCircuitBreakerGraceWindowStarted(string accountName)
+        {
+            if (_audio != null)
+                _audio.PlayBeep();
+
+            QueueDashboardUpdate(accountName);
+        }
+
+        private void OnCircuitBreakerHardLockRequired(string accountName)
+        {
+            if (_audio != null)
+                _audio.Speak(string.Format("Account {0} reached daily loss limit.", accountName), AlertPriority.Critical);
+
+            if (_flattenProtocol != null)
+                _flattenProtocol.ExecuteFlatten(accountName, "Smart circuit breaker daily loss lock");
+
+            QueueDashboardUpdate(accountName);
+        }
+
+        private void OnCircuitBreakerRecoveryAvailable(string accountName)
+        {
+            if (_audio != null)
+                _audio.PlayBeep();
+
+            QueueDashboardUpdate(accountName);
+        }
+
         private void OnGuardActivated(string accountName, string guardName)
         {
             QueueDashboardUpdate(accountName);
@@ -1294,6 +1411,9 @@ namespace NinjaTrader.NinjaScript.AddOns
             if (IsTerminalState(state))
                 return;
 
+            if (_smartCircuitBreaker != null)
+                _smartCircuitBreaker.Evaluate(accountName);
+
             _riskEngine.EvaluateRules(accountName);
         }
 
@@ -1330,7 +1450,7 @@ namespace NinjaTrader.NinjaScript.AddOns
 
         private void QueueDashboardUpdate(string accountName)
         {
-            if (_dashboardControl == null || _accountMonitor == null)
+            if ((_dashboardControl == null && _floatingWidget == null) || _accountMonitor == null)
                 return;
 
             AccountMonitor.AccountMonitorState state;
@@ -1356,29 +1476,82 @@ namespace NinjaTrader.NinjaScript.AddOns
                 state.Snapshot.PassProbability = passResult.Probability;
                 state.Snapshot.RequiredDailyAverage = passResult.RequiredDailyAverage;
 
-                _dashboardControl.UpdateAccount(accountName, vm =>
+                AccountViewModel widgetModel = new AccountViewModel
                 {
-                    vm.ConnectionStatus = connectionStatus;
-                    vm.RealizedPnL = realized;
-                    vm.UnrealizedPnL = unrealized;
-                    vm.PeakPnL = peak;
-                    vm.DrawdownFromPeak = drawdown;
-                    vm.Status = status;
-                    vm.IsHardLock = state.Snapshot.IsHardLock;
-                    vm.LockoutTimeRemaining = remaining.HasValue && remaining.Value > TimeSpan.Zero ? remaining : null;
-                    vm.TradesToday = state.Snapshot.TradesToday;
-                    vm.DailyTradeLimit = state.Snapshot.DailyTradeLimit > 0 ? state.Snapshot.DailyTradeLimit : (config != null ? config.DailyTradeLimit : 0);
-                    vm.SessionQualityScore = state.Snapshot.SessionQualityScore;
-                    vm.SessionQualityMessage = state.Snapshot.SessionQualityMessage;
-                    vm.ActiveGuards = state.Snapshot.ActiveGuards;
-                    vm.PassProbability = passResult.Probability;
-                    vm.RequiredDailyAverage = passResult.RequiredDailyAverage;
-                    vm.PassProbabilityTooltip = passResult.Tooltip;
-                    vm.DailyLimitRemaining = config != null && config.DailyLossLimit > 0.0
+                    AccountName = accountName,
+                    ConnectionStatus = connectionStatus,
+                    RealizedPnL = realized,
+                    UnrealizedPnL = unrealized,
+                    PeakPnL = peak,
+                    DrawdownFromPeak = drawdown,
+                    Status = status,
+                    IsHardLock = state.Snapshot.IsHardLock,
+                    LockoutTimeRemaining = remaining.HasValue && remaining.Value > TimeSpan.Zero ? remaining : null,
+                    TradesToday = state.Snapshot.TradesToday,
+                    DailyTradeLimit = state.Snapshot.DailyTradeLimit > 0 ? state.Snapshot.DailyTradeLimit : (config != null ? config.DailyTradeLimit : 0),
+                    SessionQualityScore = state.Snapshot.SessionQualityScore,
+                    SessionQualityMessage = state.Snapshot.SessionQualityMessage,
+                    ActiveGuards = state.Snapshot.ActiveGuards,
+                    PassProbability = passResult.Probability,
+                    RequiredDailyAverage = passResult.RequiredDailyAverage,
+                    PassProbabilityTooltip = passResult.Tooltip,
+                    DailyLimitRemaining = config != null && config.DailyLossLimit > 0.0
                         ? Math.Max(0.0, config.DailyLossLimit + realized)
-                        : 0.0;
-                    vm.IsShadowMode = config != null && config.ShadowModeEnabled;
+                        : 0.0,
+                    IsShadowMode = config != null && config.ShadowModeEnabled
+                };
+
+                if (_dashboardControl != null)
+                    _dashboardControl.UpdateAccount(accountName, vm =>
+                {
+                    vm.ConnectionStatus = widgetModel.ConnectionStatus;
+                    vm.RealizedPnL = widgetModel.RealizedPnL;
+                    vm.UnrealizedPnL = widgetModel.UnrealizedPnL;
+                    vm.PeakPnL = widgetModel.PeakPnL;
+                    vm.DrawdownFromPeak = widgetModel.DrawdownFromPeak;
+                    vm.Status = widgetModel.Status;
+                    vm.IsHardLock = widgetModel.IsHardLock;
+                    vm.LockoutTimeRemaining = widgetModel.LockoutTimeRemaining;
+                    vm.TradesToday = widgetModel.TradesToday;
+                    vm.DailyTradeLimit = widgetModel.DailyTradeLimit;
+                    vm.SessionQualityScore = widgetModel.SessionQualityScore;
+                    vm.SessionQualityMessage = widgetModel.SessionQualityMessage;
+                    vm.ActiveGuards = widgetModel.ActiveGuards;
+                    vm.PassProbability = widgetModel.PassProbability;
+                    vm.RequiredDailyAverage = widgetModel.RequiredDailyAverage;
+                    vm.PassProbabilityTooltip = widgetModel.PassProbabilityTooltip;
+                    vm.DailyLimitRemaining = widgetModel.DailyLimitRemaining;
+                    vm.IsShadowMode = widgetModel.IsShadowMode;
                 });
+
+                UpdateFloatingWidget(widgetModel);
+            }
+        }
+
+        private void UpdateFloatingWidget(AccountViewModel model)
+        {
+            if (_floatingWidget == null || model == null)
+                return;
+
+            ThreadSafeDispatcher.SafeInvoke(() =>
+            {
+                if (_floatingWidget != null)
+                    _floatingWidget.Update(model);
+            }, DispatcherPriority.Background);
+        }
+
+        private void UpdateFloatingWidgetFromFirstAccount()
+        {
+            if (_accountMonitor == null)
+                return;
+
+            foreach (AccountMonitor.AccountMonitorState state in _accountMonitor.GetAccountStates())
+            {
+                if (state != null && state.Snapshot != null)
+                {
+                    QueueDashboardUpdate(state.Snapshot.AccountName);
+                    break;
+                }
             }
         }
 
