@@ -155,9 +155,12 @@ namespace PropFirmGuardian.Core
 
                 bool staticBreached = false;
                 double bufferedStaticFloor = 0.0;
-                if (profile.StaticMaxLoss.HasValue)
+                double configuredStaticMaxLoss = state.Config.StaticMaxLoss > 0.0
+                    ? state.Config.StaticMaxLoss
+                    : (profile.StaticMaxLoss.HasValue ? profile.StaticMaxLoss.Value : 0.0);
+                if (configuredStaticMaxLoss > 0.0)
                 {
-                    double staticFloor = profile.StaticMaxLoss.Value;
+                    double staticFloor = configuredStaticMaxLoss;
                     bufferedStaticFloor = staticFloor + safetyBuffer;
                     staticBreached = currentBalance < bufferedStaticFloor;
                     LogRuleCheck("StaticMaxLoss", bufferedStaticFloor, currentBalance, staticBreached);
@@ -179,10 +182,13 @@ namespace PropFirmGuardian.Core
                     LogRuleCheck("StaticMaxLoss", 0.0, currentBalance, false);
                 }
 
-                double effectiveProfitTarget = profile.ProfitTarget.HasValue ? Math.Max(0.0, profile.ProfitTarget.Value - safetyBuffer) : 0.0;
-                bool profitTargetBreached = profile.ProfitTarget.HasValue && realizedPnL >= effectiveProfitTarget;
+                double configuredProfitTarget = state.Config.ProfitTarget > 0.0
+                    ? state.Config.ProfitTarget
+                    : (profile.ProfitTarget.HasValue ? profile.ProfitTarget.Value : 0.0);
+                double effectiveProfitTarget = configuredProfitTarget > 0.0 ? Math.Max(0.0, configuredProfitTarget - safetyBuffer) : 0.0;
+                bool profitTargetBreached = configuredProfitTarget > 0.0 && realizedPnL >= effectiveProfitTarget;
                 LogRuleCheck("ProfitTarget", effectiveProfitTarget, realizedPnL, profitTargetBreached);
-                if (profile.ProfitTarget.HasValue)
+                if (configuredProfitTarget > 0.0)
                 {
                     if (profitTargetBreached)
                     {
@@ -191,7 +197,7 @@ namespace PropFirmGuardian.Core
                             RuleType = "ProfitTarget",
                             AccountName = accountName,
                             BreachAmount = realizedPnL - effectiveProfitTarget,
-                            LimitValue = profile.ProfitTarget.Value,
+                            LimitValue = configuredProfitTarget,
                             Description = "Profit target reached; soft lockout is available for payout protection.",
                             IsHardBreach = false
                         });

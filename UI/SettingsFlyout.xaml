@@ -86,11 +86,34 @@
                 <TextBlock Text="Prop Firm Preset" />
                 <ComboBox x:Name="PresetComboBox" SelectionChanged="PresetComboBox_SelectionChanged" />
 
+                <TextBlock Text="Program Type" />
+                <ComboBox x:Name="ProgramTypeComboBox">
+                    <ComboBoxItem Content="Eval" />
+                    <ComboBoxItem Content="LivePA" />
+                    <ComboBoxItem Content="Funded" />
+                    <ComboBoxItem Content="Custom" />
+                </ComboBox>
+
+                <TextBlock Text="Account Size" />
+                <TextBox x:Name="AccountSizeTextBox" />
+
                 <TextBlock Text="Daily Loss Limit" />
                 <TextBox x:Name="DailyLossLimitTextBox" />
 
                 <TextBlock Text="Trailing Drawdown" />
                 <TextBox x:Name="TrailingDrawdownTextBox" />
+
+                <TextBlock Text="Static Max Loss / Minimum Balance Floor" />
+                <TextBox x:Name="StaticMaxLossTextBox" />
+
+                <TextBlock Text="Profit Target" />
+                <TextBox x:Name="ProfitTargetTextBox" />
+
+                <TextBlock Text="Consistency Threshold (0.30 = 30%)" />
+                <TextBox x:Name="ConsistencyThresholdTextBox" />
+
+                <TextBlock Text="Required Trading Days" />
+                <TextBox x:Name="RequiredTradingDaysTextBox" />
 
                 <TextBlock Text="Max Position Size" />
                 <TextBox x:Name="MaxPositionSizeTextBox" />

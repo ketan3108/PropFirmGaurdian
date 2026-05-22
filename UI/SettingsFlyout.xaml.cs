@@ -41,8 +41,14 @@ namespace PropFirmGuardian.UI
 
             AccountNameTextBox.Text = config.AccountName ?? string.Empty;
             PresetComboBox.SelectedItem = string.IsNullOrWhiteSpace(config.PropFirmName) ? "Custom" : config.PropFirmName;
+            SelectComboText(ProgramTypeComboBox, string.IsNullOrWhiteSpace(config.ProgramType) ? "Eval" : config.ProgramType);
+            AccountSizeTextBox.Text = config.AccountSize.ToString(CultureInfo.InvariantCulture);
             DailyLossLimitTextBox.Text = config.DailyLossLimit.ToString(CultureInfo.InvariantCulture);
             TrailingDrawdownTextBox.Text = config.TrailingDrawdown.ToString(CultureInfo.InvariantCulture);
+            StaticMaxLossTextBox.Text = config.StaticMaxLoss.ToString(CultureInfo.InvariantCulture);
+            ProfitTargetTextBox.Text = config.ProfitTarget.ToString(CultureInfo.InvariantCulture);
+            ConsistencyThresholdTextBox.Text = config.ConsistencyThreshold.ToString(CultureInfo.InvariantCulture);
+            RequiredTradingDaysTextBox.Text = config.RequiredTradingDays.ToString(CultureInfo.InvariantCulture);
             MaxPositionSizeTextBox.Text = config.MaxPositionSize.ToString(CultureInfo.InvariantCulture);
             EnableDailyLimitCheckBox.IsChecked = config.EnableDailyLimit;
             DailyTradeLimitTextBox.Text = config.DailyTradeLimit.ToString(CultureInfo.InvariantCulture);
@@ -69,12 +75,20 @@ namespace PropFirmGuardian.UI
                 return;
 
             PropFirmProfile profile = PropFirmPresets.GetPreset(PresetComboBox.SelectedItem.ToString());
+            AccountSizeTextBox.Text = profile.AccountSize.ToString(CultureInfo.InvariantCulture);
+            SelectComboText(ProgramTypeComboBox, profile.ProgramType);
 
             if (profile.DailyLossLimit.HasValue)
                 DailyLossLimitTextBox.Text = profile.DailyLossLimit.Value.ToString(CultureInfo.InvariantCulture);
 
             if (profile.TrailingDrawdownAmount.HasValue)
                 TrailingDrawdownTextBox.Text = profile.TrailingDrawdownAmount.Value.ToString(CultureInfo.InvariantCulture);
+
+            StaticMaxLossTextBox.Text = profile.StaticMaxLoss.HasValue ? profile.StaticMaxLoss.Value.ToString(CultureInfo.InvariantCulture) : "0";
+            ProfitTargetTextBox.Text = profile.ProfitTarget.HasValue ? profile.ProfitTarget.Value.ToString(CultureInfo.InvariantCulture) : "0";
+            ConsistencyThresholdTextBox.Text = profile.ConsistencyThreshold.ToString(CultureInfo.InvariantCulture);
+            RequiredTradingDaysTextBox.Text = profile.RequiredTradingDays.ToString(CultureInfo.InvariantCulture);
+            DailyTradeLimitTextBox.Text = profile.DailyTradeLimit.ToString(CultureInfo.InvariantCulture);
 
             if (profile.MaxPositionSize.HasValue)
                 MaxPositionSizeTextBox.Text = profile.MaxPositionSize.Value.ToString(CultureInfo.InvariantCulture);
@@ -135,10 +149,15 @@ namespace PropFirmGuardian.UI
 
             double dailyLossLimit;
             double trailingDrawdown;
+            double staticMaxLoss;
+            double profitTarget;
+            double accountSize;
+            double consistencyThreshold;
             double maxPositionSize;
             double safetyBuffer;
             int dailyTradeLimit;
             int emergencyOverrideTrades;
+            int requiredTradingDays;
 
             if (!double.TryParse(DailyLossLimitTextBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out dailyLossLimit) || dailyLossLimit < 0.0)
             {
@@ -149,6 +168,36 @@ namespace PropFirmGuardian.UI
             if (!double.TryParse(TrailingDrawdownTextBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out trailingDrawdown) || trailingDrawdown < 0.0)
             {
                 validationError = "Trailing Drawdown must be 0 or greater.";
+                return false;
+            }
+
+            if (!double.TryParse(AccountSizeTextBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out accountSize) || accountSize < 0.0)
+            {
+                validationError = "Account Size must be 0 or greater.";
+                return false;
+            }
+
+            if (!double.TryParse(StaticMaxLossTextBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out staticMaxLoss) || staticMaxLoss < 0.0)
+            {
+                validationError = "Static Max Loss must be 0 or greater.";
+                return false;
+            }
+
+            if (!double.TryParse(ProfitTargetTextBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out profitTarget) || profitTarget < 0.0)
+            {
+                validationError = "Profit Target must be 0 or greater.";
+                return false;
+            }
+
+            if (!double.TryParse(ConsistencyThresholdTextBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out consistencyThreshold) || consistencyThreshold < 0.0 || consistencyThreshold > 1.0)
+            {
+                validationError = "Consistency Threshold must be between 0.0 and 1.0.";
+                return false;
+            }
+
+            if (!int.TryParse(RequiredTradingDaysTextBox.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out requiredTradingDays) || requiredTradingDays < 1 || requiredTradingDays > 60)
+            {
+                validationError = "Required Trading Days must be between 1 and 60.";
                 return false;
             }
 
@@ -180,8 +229,14 @@ namespace PropFirmGuardian.UI
             {
                 AccountName = _sourceConfig.AccountName,
                 PropFirmName = PresetComboBox.SelectedItem != null ? PresetComboBox.SelectedItem.ToString() : "Custom",
+                ProgramType = GetComboText(ProgramTypeComboBox),
+                AccountSize = accountSize,
                 DailyLossLimit = dailyLossLimit,
                 TrailingDrawdown = trailingDrawdown,
+                StaticMaxLoss = staticMaxLoss,
+                ProfitTarget = profitTarget,
+                ConsistencyThreshold = consistencyThreshold,
+                RequiredTradingDays = requiredTradingDays,
                 MaxPositionSize = maxPositionSize,
                 SafetyBuffer = safetyBuffer,
                 IsLivePA = IsLivePaCheckBox.IsChecked == true,
@@ -217,6 +272,27 @@ namespace PropFirmGuardian.UI
             }
 
             SessionResetComboBox.Text = target;
+        }
+
+        private static void SelectComboText(ComboBox comboBox, string value)
+        {
+            foreach (object item in comboBox.Items)
+            {
+                ComboBoxItem comboBoxItem = item as ComboBoxItem;
+                if (comboBoxItem != null && string.Equals(comboBoxItem.Content.ToString(), value, StringComparison.OrdinalIgnoreCase))
+                {
+                    comboBox.SelectedItem = comboBoxItem;
+                    return;
+                }
+            }
+
+            comboBox.Text = value ?? string.Empty;
+        }
+
+        private static string GetComboText(ComboBox comboBox)
+        {
+            ComboBoxItem selectedItem = comboBox.SelectedItem as ComboBoxItem;
+            return selectedItem != null ? selectedItem.Content.ToString() : comboBox.Text;
         }
 
         private TimeSpan ParseSelectedResetTime()

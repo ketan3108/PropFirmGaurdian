@@ -50,14 +50,32 @@ namespace PropFirmGuardian.Intelligence
             int remainingDays = Math.Max(1, requiredDays - daysElapsed + 1);
             double remainingTarget = Math.Max(0.0, target - currentPnL);
             double requiredDailyAverage = remainingTarget / remainingDays;
-            double progressScore = Math.Max(0.0, Math.Min(1.0, currentPnL / target));
-            double paceScore = requiredDailyAverage <= 0.0 ? 1.0 : Math.Max(0.0, Math.Min(1.0, (target / requiredDays) / requiredDailyAverage));
-            double drawdownPenalty = config.MaxDrawdown > 0.0 ? Math.Min(0.35, Math.Max(0.0, snapshot.PeakUnrealizedPnL - currentPnL) / config.MaxDrawdown * 0.35) : 0.0;
+            double progressScore = Clamp01(currentPnL / target);
+            double projectedPnL = (currentPnL / Math.Max(1, daysElapsed)) * requiredDays;
+            double trajectoryScore = Clamp01(projectedPnL / target);
+            double paceScore = requiredDailyAverage <= 0.0 ? 1.0 : Clamp01((target / requiredDays) / requiredDailyAverage);
+            double configuredDrawdown = config.MaxDrawdown > 0.0 ? config.MaxDrawdown : config.TrailingDrawdown;
+            double drawdownUsed = Math.Max(0.0, snapshot.PeakUnrealizedPnL - currentPnL);
+            double drawdownPenalty = configuredDrawdown > 0.0 ? Math.Min(0.30, drawdownUsed / configuredDrawdown * 0.30) : 0.0;
+            double dailyLossPenalty = config.DailyLossLimit > 0.0 && currentPnL < 0.0
+                ? Math.Min(0.20, Math.Abs(currentPnL) / config.DailyLossLimit * 0.20)
+                : 0.0;
             double consistencyPenalty = snapshot.LargestTradePercent > config.ConsistencyThreshold * 100.0 ? 0.15 : 0.0;
-            double probability = (progressScore * 0.55 + paceScore * 0.45 - drawdownPenalty - consistencyPenalty) * 100.0;
+            double probability = (progressScore * 0.35 + trajectoryScore * 0.30 + paceScore * 0.35 - drawdownPenalty - dailyLossPenalty - consistencyPenalty) * 100.0;
             probability = Math.Max(0.0, Math.Min(100.0, probability));
-            string tooltip = string.Format("At current pace, {0:0}% chance of passing. You need +${1:0}/day average.", probability, requiredDailyAverage);
+            string tooltip = string.Format("{0} {1:0}. {2:0}% pass chance. Need +${3:0}/day. Target ${4:0}, DD ${5:0}.",
+                config.PropFirmName,
+                config.AccountSize,
+                probability,
+                requiredDailyAverage,
+                target,
+                configuredDrawdown);
             return new PassProbabilityResult(probability, requiredDailyAverage, tooltip);
+        }
+
+        private static double Clamp01(double value)
+        {
+            return Math.Max(0.0, Math.Min(1.0, value));
         }
     }
 

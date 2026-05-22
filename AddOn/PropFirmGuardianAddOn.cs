@@ -1707,8 +1707,11 @@ namespace NinjaTrader.NinjaScript.AddOns
             {
                 AccountName = accountName,
                 PropFirmName = "Custom",
+                ProgramType = "Eval",
+                AccountSize = 50000.0,
                 DailyLossLimit = 0.0,
                 TrailingDrawdown = 0.0,
+                StaticMaxLoss = 0.0,
                 MaxPositionSize = 0.0,
                 SafetyBuffer = 25.0,
                 IsLivePA = false,
@@ -1718,6 +1721,10 @@ namespace NinjaTrader.NinjaScript.AddOns
                 ShadowModeEnabled = false,
                 HardEnforcementEnabled = true,
                 DailyTradeLimit = 10,
+                ProfitTarget = 3000.0,
+                MaxDrawdown = 2500.0,
+                ConsistencyThreshold = 0.30,
+                RequiredTradingDays = 7,
                 EnableDailyLimit = true,
                 AllowEmergencyOverride = true,
                 EmergencyOverrideTrades = 2

@@ -14,6 +14,10 @@ namespace PropFirmGuardian.Models
             EmergencyOverrideTrades = 2;
             ProfitTarget = 3000.0;
             MaxDrawdown = 2500.0;
+            AccountSize = 50000.0;
+            ProgramType = "Eval";
+            DrawdownMode = "Trailing";
+            StaticMaxLoss = 0.0;
             ConsistencyThreshold = 0.30;
             RequiredTradingDays = 8;
             TradeCap = 12;
@@ -35,8 +39,12 @@ namespace PropFirmGuardian.Models
 
         public string AccountName { get; set; }
         public string PropFirmName { get; set; }
+        public string ProgramType { get; set; }
+        public double AccountSize { get; set; }
+        public string DrawdownMode { get; set; }
         public double DailyLossLimit { get; set; }
         public double TrailingDrawdown { get; set; }
+        public double StaticMaxLoss { get; set; }
         public double MaxPositionSize { get; set; }
         public double SafetyBuffer { get; set; }
         public bool IsLivePA { get; set; }
